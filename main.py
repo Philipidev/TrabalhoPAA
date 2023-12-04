@@ -1,47 +1,47 @@
 import time
 from collections import defaultdict
 import plotly.graph_objects as go
-import sys  
+import sys
+import matplotlib.pyplot as plt
+
 
 class Graph:
     def __init__(self, vertices):
-        self.V = vertices  # Número de vértices
-        self.graph = defaultdict(list)  # Dicionário padrão para armazenar o grafo
+        self.V = vertices
+        self.graph = defaultdict(list)
 
     def addEdge(self, u, v):
         self.graph[u].append(v)
-        self.graph[v].append(u)  # Adiciona para ambos os vértices porque o grafo é não direcionado
+        self.graph[v].append(u)
 
     def cobertura_vertices_backtracking(self, u, cobertura, k, visited):
         if k < 0:
             return None
 
-        if u == self.V:  # Todos os vértices foram considerados
+        if u == self.V:
             if all(visited[v] or visited[u] for u in range(self.V) for v in self.graph[u]):
                 return cobertura.copy()
             return None
 
-        # Não incluir u na cobertura
         visited[u] = True
         solucao_sem_u = self.cobertura_vertices_backtracking(u + 1, cobertura, k, visited)
         if solucao_sem_u is not None:
             return solucao_sem_u
 
-        # Incluir u na cobertura
         visited[u] = False
         cobertura.add(u)
         solucao_com_u = self.cobertura_vertices_backtracking(u + 1, cobertura, k - 1, visited)
-        cobertura.remove(u)
+        if solucao_com_u is not None:
+            return solucao_com_u
 
-        return solucao_com_u
+        cobertura.remove(u)
+        return None
 
     def run_vertex_cover_backtracking(self):
-        start_time = time.time()
         visited = [True] * self.V
         cobertura = self.cobertura_vertices_backtracking(0, set(), self.V, visited)
-        end_time = time.time()
-        return cobertura, end_time - start_time
-    
+        return cobertura
+
     def emparelhamento_maximo(self):
         visitado = set()
         emparelhamento = []
@@ -77,10 +77,11 @@ class Graph:
                 self.graph[u].remove(v)
                 self.graph[v].remove(u)
         return cobertura
-    
+
     def run_algorithms(self):
         start_time = time.time()
-        cobertura_backtracking, tempo_backtracking = self.run_vertex_cover_backtracking()
+        cobertura_backtracking = self.run_vertex_cover_backtracking()
+        tempo_backtracking = time.time() - start_time
 
         start_time = time.time()
         cobertura_2aprox = self.cobertura_vertices_2aprox()
@@ -96,27 +97,50 @@ class Graph:
             'heuristica': (cobertura_heuristica, tempo_heuristica)
         }
 
+def generate_graph_and_times():
+    sizes = [100, 500, 1000, 2000, 4000, 6000, 8000, 10000, 20000, 50000, 100000]
+    backtracking_times = []
+    two_approx_times = []
+    heuristic_times = []
 
-def generate_graph():
-    sizes = [100, 500, 1000, 2000, 2300]  # Tamanhos de grafos maiores podem levar muito tempo devido à natureza exponencial do algoritmo
-    sys.setrecursionlimit(10000)  
+    sys.setrecursionlimit(110000)
 
     for size in sizes:
         print(f"Tamanho do grafo: {size}")
         g = Graph(size)
-
-        # Adicionar arestas ao grafo
         for i in range(size - 1):
             g.addEdge(i, i + 1)
 
-        # Executar algoritmos
         resultados = g.run_algorithms()
 
-        # Exibir resultados
         for metodo, (cobertura, tempo) in resultados.items():
-            # print(f"Metodo: {metodo}, Cobertura de Vértices: {cobertura}, Tempo de execução: {tempo:.4f} segundos")
-            print(f"Metodo: {metodo}, Tempo de execução: {tempo} segundos")
+            print(f"Metodo: {metodo}, Tempo de execução: {tempo:.4f} segundos")
+
+        backtracking_times.append(resultados['backtracking'][1])
+        two_approx_times.append(resultados['2-aprox'][1])
+        heuristic_times.append(resultados['heuristica'][1])
+
         print()
 
-if __name__ == '__main__':
-    generate_graph()
+    return sizes, backtracking_times, two_approx_times, heuristic_times
+
+
+
+
+
+
+sizes, backtracking_times, two_approx_times, heuristic_times = generate_graph_and_times()
+
+# Plotar o gráfico
+plt.figure(figsize=(10, 6))
+plt.plot(sizes, backtracking_times, marker='o', label='Backtracking')
+plt.plot(sizes, two_approx_times, marker='s', label='2-Aproximação (Emparelhamento Máximo)')
+plt.plot(sizes, heuristic_times, marker='^', label='Heurística (Vértice de Maior Grau)')
+
+plt.title('Comparação de Tempo de Execução dos Métodos por Tamanho do Grafo')
+plt.xlabel('Tamanho do Grafo')
+plt.ylabel('Tempo de Execução (segundos)')
+plt.yscale('log')
+plt.legend()
+plt.grid(True)
+plt.show()
