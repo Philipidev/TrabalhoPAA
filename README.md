@@ -40,6 +40,3 @@ Gera grafos de diferentes tamanhos e aplica os algoritmos de cobertura de vérti
 
 ### Plotagem de Gráfico
 O script usa `matplotlib` para plotar os tempos de execução dos três métodos em relação ao tamanho dos grafos.
-
-## Licença
-Inclua informações sobre a licença, se aplicável.
